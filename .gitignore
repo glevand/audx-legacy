@@ -1,0 +1,61 @@
+#
+# NOTE! Don't add files that are generated in specific
+# subdirectories here. Add them in the ".gitignore" file
+# in that subdirectory instead.
+
+#
+# Normal rules
+#
+.*
+*.o
+*.o.*
+*.a
+*.s
+*.so
+*.so.dbg
+*.i
+*.lst
+*.lo
+*.la
+*.map
+*.eo
+*.gz
+*.tar
+*.bz2
+
+#
+# Top-level generic files
+#
+tags
+TAGS
+!.gitignore
+
+# quilt's files
+patches
+series
+
+cscope.*
+*.orig
+*.rej
+
+#
+# bootstrap generated files
+#
+aclocal.m4
+autom4te.cache
+config.h.in
+configure
+configure.ac
+depcomp
+install-sh
+Makefile.in
+missing
+
+#
+# configure generated files
+#
+config.h
+config.log
+config.status
+Makefile
+stamp-h1
