@@ -1,0 +1,21 @@
+## configure.ac.in -- Use bootstrap to process this file.
+#
+#  Copyright 2008 Geoff Levand
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License, Version 2 as
+# published by the Free Software Foundation.
+#
+
+AC_INIT([audx], [@version@], [Geoff Levand <geoff@infradead.org>])
+
+AC_PREFIX_DEFAULT([/usr/local])
+
+AM_INIT_AUTOMAKE
+
+AC_SUBST([DESTDIR])
+
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_FILES([Makefile])
+
+AC_OUTPUT

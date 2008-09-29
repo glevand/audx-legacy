@@ -59,3 +59,9 @@ config.log
 config.status
 Makefile
 stamp-h1
+
+#
+# make generated files
+#
+flac2mp4
+
