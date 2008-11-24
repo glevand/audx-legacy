@@ -13,7 +13,7 @@ man_MANS = $(composed_mans)
 
 composed_bin_scripts = flac2mp4
 
-bin_SCRIPTS = $(composed_bin_scripts)
+bin_SCRIPTS = $(composed_bin_scripts) audx.pm
 
 composed_files = $(composed_bin_scripts) $(composed_mans)
 
