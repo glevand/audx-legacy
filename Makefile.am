@@ -11,7 +11,7 @@ composed_mans =
 
 man_MANS = $(composed_mans)
 
-composed_bin_scripts = flac2mp4
+composed_bin_scripts = flac2mp4 flac-cleanup
 
 bin_SCRIPTS = $(composed_bin_scripts) audx.pm
 
@@ -26,6 +26,12 @@ edit = sed \
 	-e 's|@prefix\@|$(prefix)|g'
 
 flac2mp4: Makefile $(srcdir)/flac2mp4.in
+	rm -f $@ $@.tmp
+	$(edit) $(srcdir)/$@.in >$@.tmp
+	chmod +x $@.tmp
+	mv $@.tmp $@
+
+flac-cleanup: Makefile $(srcdir)/flac-cleanup.in
 	rm -f $@ $@.tmp
 	$(edit) $(srcdir)/$@.in >$@.tmp
 	chmod +x $@.tmp

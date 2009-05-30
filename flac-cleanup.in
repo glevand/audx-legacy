@@ -1,0 +1,87 @@
+#!/usr/bin/perl -w
+#
+# Copyright 2008 Geoff Levand
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# -- todo --
+# vfat clean: ?"
+#
+package main;
+
+use strict;
+use warnings;
+use Getopt::Std;
+require audx;
+
+my $app_name = q(flac-cleanup);
+my $app_version = q((@PACKAGE_NAME@) @PACKAGE_VERSION@);
+my $app_bugreport = q(Send bug reports to @PACKAGE_BUGREPORT@.);
+
+sub VERSION_MESSAGE
+{
+	print($app_name . " " . $app_version . "\n");
+}
+
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+
+sub HELP_MESSAGE
+{
+	print("SYNOPSIS\n"
+. "     " . $app_name . " [-OPTIONS]\n"
+. "DESCRIPTION\n"
+. "     Cleanup the tags and filenames of flac files listed on stdin.\n"
+. "     The resulting tags and filenames are suitable for use with\n"
+. "     VFAT devices.\n"
+. "OPTIONS\n"
+. "     -h, --help\n"
+. "          Print a help message.\n"
+. "     -p prefix\n"
+. "          Backup original files to directory prefix.\n"
+. "     -n\n"
+. "          Dry run (no changes written).\n"
+. "     -v level\n"
+. "          Program verbosity level.\n"
+. "     -V, --version\n"
+. "          Display the program version number.\n"
+. "EXAMPLE\n"
+. "     find music/flac -type f -name '*.flac' | sort | \\\n"
+. "     flac-cleanup -p bak -v\n"
+	);
+	print($app_bugreport . "\n");
+}
+
+sub opts_parse (@)
+{
+	my ($opts) = @_;
+	our ($opt_h, $opt_p, $opt_n, $opt_v, $opt_V);
+
+	getopts('hp:nv:V');
+
+	if (defined($opt_h)) {
+		VERSION_MESSAGE();
+		HELP_MESSAGE();
+		exit 0;
+	}
+
+	if (defined($opt_V)) {
+		VERSION_MESSAGE();
+		exit 0;
+	}
+
+	$opts->{prefix} = defined($opt_p) ? $opt_p : "./";
+
+	$opts->{dry_run} = defined($opt_n) ? 1 : 0;
+	$opts->{dry_run} = defined($opt_n) ? 1 : 0;
+	$opts->{verbosity} = defined($opt_v) ? $opt_v
+		: $opts->{dry_run} ? 1 : 0;
+}
+
+# start of program
+
+my %opts;
+opts_parse(\%opts);
+
+__END__

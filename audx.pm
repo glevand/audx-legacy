@@ -17,7 +17,7 @@ our $VERSION = 1.00;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(dir_make file_exists file_remove file_info_parse
 	file_info_print tags_from_metaflac tags_print flac_decode
-	faac_encode);
+	faac_encode nero_encode);
 
 sub dir_make (@)
 {
@@ -195,13 +195,13 @@ sub faac_encode (@)
 	$in_file =~ s/'/'\\''/g;
 	$out_file =~ s/'/'\\''/g;
 
-	my $cmd = q(faac ) . $quality;
-
 	if (!defined($tags->{artist}) || !defined($tags->{album})
 		|| !defined($tags->{title}) || !defined($tags->{track})) {
 		print STDERR ( __PACKAGE__ . ": " . __LINE__ . ": bad tags.\n");
 		exit 1;
 	}
+
+	my $cmd = q(faac ) . $quality;
 
 	$tag = $tags->{artist};
 	$tag =~ s/'/'\\''/g;
@@ -242,6 +242,85 @@ sub faac_encode (@)
 		print STDERR ( __PACKAGE__ . ": " . __LINE__ . ": cmd: @" . $cmd
 			. "@ failed.\n") if $result;
 	}
+
+	return !!$result;
+}
+
+sub nero_encode (@)
+{
+	my ($in_file, $tags, $quality, $out_file, $dry_run, $verbosity) = @_;
+	my $result;
+	my $tag;
+	my $cmd;
+
+	my $sink = ($verbosity > 1) ? "" : " 2> /dev/null";
+
+	$in_file =~ s/'/'\\''/g;
+	$out_file =~ s/'/'\\''/g;
+
+	if (!defined($tags->{artist}) || !defined($tags->{album})
+		|| !defined($tags->{title}) || !defined($tags->{track})) {
+		print STDERR ( __PACKAGE__ . ": " . __LINE__ . ": bad tags.\n");
+		exit 1;
+	}
+
+	$cmd = q(neroAacEnc -lc ) . $quality . q( -of ') . $out_file
+		. q(' -if ') . $in_file . q(') . $sink;
+
+	print STDOUT ("cmd: @" . $cmd . "@\n") if ($verbosity >= 2);
+
+	if (!$dry_run) {
+		$result = system($cmd);
+		print STDERR ( __PACKAGE__ . ": " . __LINE__ . ": cmd: @" . $cmd
+			. "@ failed.\n") if $result;
+	}
+
+	$cmd = q(neroAacTag ') . $out_file . q(');
+
+	$tag = $tags->{artist};
+	$tag =~ s/'/'\\''/g;
+	$cmd .= q( -meta:artist=') . $tag . q(');
+
+	$tag = $tags->{album};
+	$tag =~ s/'/'\\''/g;
+	$cmd .= q( -meta:album=') . $tag . q(');
+
+	$tag = $tags->{title};
+	$tag =~ s/'/'\\''/g;
+	$cmd .= q( -meta:title=') . $tag . q(');
+
+	$cmd .= q( -meta:track=) . $tags->{track};
+
+	$cmd .= q( -meta:year=) . $tags->{date} if (defined($tags->{date}));
+
+	if (defined($tags->{genre})) {
+		$tag = $tags->{genre};
+		$tag =~ s/'/'\\''/g;
+		$cmd .= q( -meta:genre=') . $tag . q(');
+	}
+
+	$cmd .= q( -meta:disc=) . $tags->{disc} if (defined($tags->{disc}));
+
+	if (defined($tags->{comment})) {
+		$tag = $tags->{comment};
+		$tag =~ s/'/'\\''/g;
+		$cmd .= q( -meta:comment=') . $tag . q(');
+	}
+
+	#  totaltracks
+	#  totaldiscs
+	#  url
+	#  copyright
+	#  lyrics
+	#  credits
+	#  rating
+	#  label
+	#  composer
+	#  isrc
+	#  mood
+	#  tempo
+
+	print STDOUT ("cmd: @" . $cmd . "@\n") if ($verbosity >= 2);
 
 	return !!$result;
 }

@@ -7,6 +7,7 @@
 # the Free Software Foundation; version 2 of the License.
 #
 # -- todo --
+# use nero encoder
 # output to tmp file and rename
 # add threads
 # multiple quality opts
@@ -23,8 +24,16 @@ my $app_version = q((@PACKAGE_NAME@) @PACKAGE_VERSION@);
 my $app_bugreport = q(Send bug reports to @PACKAGE_BUGREPORT@.);
 
 my %qualities = (
-	128 => {prefix => "128", opts => "-q 100 -c 16000"},
-	256 => {prefix => "256", opts => "-q 200 -c 24000"},
+	128 => {
+		prefix => "128",
+		faac_opts => "-q 100 -c 16000",
+		nero_opts => "-2pass -br 128000",
+	},
+	256 => {
+		prefix => "256",
+		faac_opts => "-q 200 -c 24000",
+		nero_opts => "-2pass -br 256000",
+	},
 );
 
 sub VERSION_MESSAGE
@@ -161,8 +170,10 @@ FILE: foreach my $file (@file_info) {
 	audx::tags_print($file->{tags}, $opts{verbosity});
 
 	my $out_dir = $opts{prefix} . "/" . $file->{info}->{path};
-	my $wav_file = $out_dir . $file->{info}->{title} . ".wav";
-	my $mp4_file = $out_dir . $file->{info}->{title} . ".mp4";
+	my $wav_file = $out_dir . $file->{info}->{number} . "-"
+		. $file->{info}->{title} . ".wav";
+	my $mp4_file = $out_dir . $file->{info}->{number} . "-"
+		. $file->{info}->{title} . ".m4a";
 
 	print STDOUT ("mp4_file: '" . $mp4_file . "'\n")
 		if ($opts{verbosity});
@@ -186,18 +197,32 @@ FILE: foreach my $file (@file_info) {
 
 	if ($result) {
 		print STDERR ($app_name . ": " . __LINE__ . ": flac_decode "
-			. $file->{info}->{full} . "failed.\n");
+			. $file->{info}->{full} . " failed.\n");
 		exit 1;
 	}
 
-	$result = audx::faac_encode($wav_file, $file->{tags},
-		$qualities{$opts{quality}}->{opts}, $mp4_file, $opts{dry_run},
-		$opts{verbosity});
+	if (0) {
+		$result = audx::faac_encode($wav_file, $file->{tags},
+			$qualities{$opts{quality}}->{faac_opts}, $mp4_file,
+			$opts{dry_run}, $opts{verbosity});
 
-	if ($result) {
-		print STDERR ($app_name . ": " . __LINE__ . ": faac_encode "
-			. $file->{info}->{full} . "failed.\n");
-		exit 1;
+		if ($result) {
+			print STDERR ($app_name . ": " . __LINE__
+				. ": faac_encode " . $file->{info}->{full}
+				. " failed.\n");
+			exit 1;
+		}
+	} else {
+		$result = audx::nero_encode($wav_file, $file->{tags},
+			$qualities{$opts{quality}}->{nero_opts}, $mp4_file,
+			$opts{dry_run}, $opts{verbosity});
+
+		if ($result) {
+			print STDERR ($app_name . ": " . __LINE__
+				. ": nero_encode " . $file->{info}->{full}
+				. " failed.\n");
+			exit 1;
+		}
 	}
 
 	audx::file_remove($wav_file) if (!$opts{dry_run} && !$opts{keep});
