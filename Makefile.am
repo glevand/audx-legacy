@@ -7,6 +7,26 @@
 # published by the Free Software Foundation.
 #
 
+AM_CFLAGS = \
+	-g \
+	-Wall \
+	-W \
+	-Wunused \
+	-Wstrict-prototypes \
+	-Wmissing-prototypes \
+	-Wmissing-declarations \
+	-Wredundant-decls \
+	-Winline
+
+bin_PROGRAMS =
+
+if COND_MB
+ bin_PROGRAMS += mart
+endif
+
+mart_SOURCES = mart.c
+mart_LDADD = -lmusicbrainz3
+
 composed_mans =
 
 man_MANS = $(composed_mans)

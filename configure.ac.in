@@ -11,9 +11,15 @@ AC_INIT([audx], [@version@], [Geoff Levand <geoff@infradead.org>])
 
 AC_PREFIX_DEFAULT([/usr/local])
 
+AC_PROG_CC
 AM_INIT_AUTOMAKE
 
 AC_SUBST([DESTDIR])
+
+AC_CHECK_HEADER([musicbrainz3/mb_c.h],
+	[use_mb=yes],
+	[[use_mb=no]; AC_MSG_WARN([mart will not be built, needs musicbrainz3])])
+AM_CONDITIONAL([COND_MB], [test ${use_mb} = yes])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
