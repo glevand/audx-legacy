@@ -54,6 +54,8 @@ sub file_remove (@)
 	return system(q(rm ') . $file . q('));
 }
 
+# file_info_parse - collect info from path and file name.
+
 sub file_info_parse (@)
 {
 	my ($info, $file, $verbosity) = @_;
@@ -103,6 +105,23 @@ sub file_info_print (@)
 		print STDOUT ("i-number:      '" . $info->{number} . "'\n");
 		print STDOUT ("i-title:       '" . $info->{title} . "'\n");
 	}
+}
+
+sub mart_from_info (@)
+{
+	my ($info, $verbosity) = @_;
+
+	print STDOUT ("i-albumartist: '" . $info->{albumartist} . "'\n");
+	print STDOUT ("i-albumtitle:  '" . $info->{albumtitle} . "'\n");
+
+	my $cmd = "metaflac --list --block-type=VORBIS_COMMENT '" . $in_file
+		. "'";
+
+	print STDOUT ("cmd: @" . $cmd . "@\n") if ($verbosity >= 4);
+
+	my $meta = qx($cmd);
+	chomp($meta);
+
 }
 
 sub tags_from_metaflac (@)
@@ -250,7 +269,6 @@ sub nero_encode (@)
 {
 	my ($in_file, $tags, $quality, $out_file, $dry_run, $verbosity) = @_;
 	my $result;
-	my $tag;
 	my $cmd;
 
 	my $sink = ($verbosity > 1) ? "" : " 2> /dev/null";
@@ -261,7 +279,6 @@ sub nero_encode (@)
 	if (!defined($tags->{artist}) || !defined($tags->{album})
 		|| !defined($tags->{title}) || !defined($tags->{track})) {
 		print STDERR ( __PACKAGE__ . ": " . __LINE__ . ": bad tags.\n");
-		exit 1;
 	}
 
 	$cmd = q(neroAacEnc -lc ) . $quality . q( -of ') . $out_file
@@ -275,7 +292,26 @@ sub nero_encode (@)
 			. "@ failed.\n") if $result;
 	}
 
-	$cmd = q(neroAacTag ') . $out_file . q(');
+	return !!$result;
+}
+
+sub nero_tag (@)
+{
+	my ($tags, $file, $dry_run, $verbosity) = @_;
+	my $result;
+	my $tag;
+	my $cmd;
+
+	my $sink = ($verbosity > 1) ? "" : " 2> /dev/null";
+
+	$file =~ s/'/'\\''/g;
+
+	if (!defined($tags->{artist}) || !defined($tags->{album})
+		|| !defined($tags->{title}) || !defined($tags->{track})) {
+		print STDERR ( __PACKAGE__ . ": " . __LINE__ . ": bad tags.\n");
+	}
+
+	$cmd = q(neroAacTag ') . $file . q(');
 
 	$tag = $tags->{artist};
 	$tag =~ s/'/'\\''/g;
@@ -321,6 +357,12 @@ sub nero_encode (@)
 	#  tempo
 
 	print STDOUT ("cmd: @" . $cmd . "@\n") if ($verbosity >= 2);
+
+	if (!$dry_run) {
+		$result = system($cmd);
+		print STDERR ( __PACKAGE__ . ": " . __LINE__ . ": cmd: @" . $cmd
+			. "@ failed.\n") if $result;
+	}
 
 	return !!$result;
 }

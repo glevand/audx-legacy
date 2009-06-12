@@ -47,7 +47,7 @@ sub HELP_MESSAGE
 	print("SYNOPSIS\n"
 . "     " . $app_name . " [-OPTIONS]\n"
 . "DESCRIPTION\n"
-. "     Create mp4 encoded files from flac files listed on stdin.\n"
+. "     Create mp4 AAC encoded files from flac files listed on stdin.\n"
 . "     The mp4 files are suitable for download to walkman type\n"
 . "     devices.\n"
 . "OPTIONS\n"
@@ -56,12 +56,14 @@ sub HELP_MESSAGE
 . "     -k\n"
 . "          Keep the intermediate wave files.\n"
 . "     -p prefix\n"
-. "          Create mp4 files in directory prefix.\n"
+. "          Directory prefix for mp4 files.\n"
 . "     -q quality\n"
 . "          Encoding quality, one of {"
 	. join( ',', sort(keys(%qualities))) . "}.\n"
 . "     -n\n"
 . "          Dry run (no decoding/encoding).\n"
+. "     -t\n"
+. "          Re-tag mp4 files from flac file tags (no decoding/encoding).\n"
 . "     -v level\n"
 . "          Program verbosity level.\n"
 . "     -V, --version\n"
@@ -76,16 +78,16 @@ sub HELP_MESSAGE
 sub opts_parse (@)
 {
 	my ($opts) = @_;
-	our ($opt_h, $opt_k, $opt_p, $opt_q, $opt_n, $opt_v, $opt_V);
+	our ($opt_h, $opt_k, $opt_p, $opt_q, $opt_n, $opt_t, $opt_v, $opt_V);
 
-	getopts('hkp:q:nv:V');
+	getopts('hkp:q:ntv:V');
 
 	if (defined($opt_h)) {
 		VERSION_MESSAGE();
 		HELP_MESSAGE();
 		exit 0;
 	}
-	
+
 	if (defined($opt_V)) {
 		VERSION_MESSAGE();
 		exit 0;
@@ -94,30 +96,39 @@ sub opts_parse (@)
 	$opts->{keep} = defined($opt_k) ? 1 : 0;
 	$opts->{prefix} = defined($opt_p) ? $opt_p : "./";
 
-	if (!defined($opt_q)) {
-		print STDERR ("ERROR: No encoding quality specified.\n");
-		VERSION_MESSAGE();
-		HELP_MESSAGE();
-		exit 1;
-	}
-
-	foreach my $x (keys(%qualities)) {
-		if ($opt_q eq $x) {
-			$opts->{quality} = $x;
-			last;
+	if (defined($opt_q)) {
+		foreach my $x (keys(%qualities)) {
+			if ($opt_q eq $x) {
+				$opts->{quality} = $x;
+				last;
+			}
+		}
+		if (!defined($opts->{quality})) {
+			print STDERR ("ERROR: Bad encoding quality\n");
+			VERSION_MESSAGE();
+			HELP_MESSAGE();
+			exit 1;
 		}
 	}
 
-	if (!defined($opts->{quality})) {
-		print STDERR ("ERROR: Bad encoding quality specified.\n");
-		VERSION_MESSAGE();
-		HELP_MESSAGE();
-		exit 1;
-	}
-
 	$opts->{dry_run} = defined($opt_n) ? 1 : 0;
+	$opts->{retag} = defined($opt_t) ? 1 : 0;
 	$opts->{verbosity} = defined($opt_v) ? $opt_v
 		: $opts->{dry_run} ? 1 : 0;
+}
+
+sub retag (@)
+{
+	my ($file, $tags, $dry_run, $verbosity) = @_;
+	my $result;
+
+	$result = audx::nero_tag($tags, $file, $dry_run, $verbosity);
+
+	if ($result) {
+		print STDERR ($app_name . ": " . __LINE__ . ": nero_tag "
+			. $file . " failed.\n");
+		exit 1;
+	}
 }
 
 # start of program
@@ -130,10 +141,16 @@ chomp($time);
 
 print STDOUT ($app_name . ": processed at " . $time . "\n");
 
-if ($opts{verbosity}) {
-	print STDOUT ($app_name . ": verbosity: " . $opts{verbosity} . "\n");
-	print STDOUT ($app_name . ": quality:   " . $opts{quality} . "\n");
-	print STDOUT ($app_name . ": out_prefix: '" . $opts{prefix} . "'\n");
+print STDOUT ($app_name . ": out_prefix: '" . $opts{prefix} . "'\n")
+	if ($opts{verbosity});
+print STDOUT ($app_name . ": quality:   " . $opts{quality} . "\n")
+	if ($opts{verbosity} && $opts{quality});
+
+if (!defined($opts{retag}) && !defined($opts{quality})) {
+	print STDERR ("ERROR: No encoding quality specified.\n");
+	VERSION_MESSAGE();
+	HELP_MESSAGE();
+	exit 1;
 }
 
 my @file_info;
@@ -169,19 +186,27 @@ FILE: foreach my $file (@file_info) {
 	audx::tags_print($file->{tags}, $opts{verbosity});
 
 	my $out_dir = $opts{prefix} . "/" . $file->{info}->{path};
-	my $wav_file = $out_dir . $file->{info}->{number} . "-"
-		. $file->{info}->{title} . ".wav";
+
 	my $mp4_file = $out_dir . $file->{info}->{number} . "-"
 		. $file->{info}->{title} . ".m4a";
 
 	print STDOUT ("mp4_file: '" . $mp4_file . "'\n")
 		if ($opts{verbosity});
 
+	if ($opts{retag}) {
+		retag($mp4_file, $file->{tags}, $opts{dry_run},
+			$opts{verbosity});
+		next FILE;
+	}
+
 	if (audx::file_exists($mp4_file)) {
 		print STDERR ("exists: '" . $mp4_file . "'\n")
 			if ($opts{verbosity});
 		next FILE;
 	}
+
+	my $wav_file = $out_dir . $file->{info}->{number} . "-"
+		. $file->{info}->{title} . ".wav";
 
 	if (audx::file_exists($wav_file)) {
 		print STDERR ("exists: '" . $wav_file . "'\n")
@@ -219,6 +244,16 @@ FILE: foreach my $file (@file_info) {
 		if ($result) {
 			print STDERR ($app_name . ": " . __LINE__
 				. ": nero_encode " . $file->{info}->{full}
+				. " failed.\n");
+			exit 1;
+		}
+
+		$result = audx::nero_tag($file->{tags}, $mp4_file,
+			$opts{dry_run}, $opts{verbosity});
+
+		if ($result) {
+			print STDERR ($app_name . ": " . __LINE__
+				. ": nero_tag " . $file->{info}->{full}
 				. " failed.\n");
 			exit 1;
 		}

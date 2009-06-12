@@ -31,7 +31,7 @@ composed_mans =
 
 man_MANS = $(composed_mans)
 
-composed_bin_scripts = flac2mp4 flac-cleanup
+composed_bin_scripts = flac2mp4 flac-cleanup get-art
 
 bin_SCRIPTS = $(composed_bin_scripts) audx.pm
 
@@ -52,6 +52,12 @@ flac2mp4: Makefile $(srcdir)/flac2mp4.in
 	mv $@.tmp $@
 
 flac-cleanup: Makefile $(srcdir)/flac-cleanup.in
+	rm -f $@ $@.tmp
+	$(edit) $(srcdir)/$@.in >$@.tmp
+	chmod +x $@.tmp
+	mv $@.tmp $@
+
+get-art: Makefile $(srcdir)/get-art.in
 	rm -f $@ $@.tmp
 	$(edit) $(srcdir)/$@.in >$@.tmp
 	chmod +x $@.tmp

@@ -1,0 +1,131 @@
+#!/usr/bin/perl -w
+#
+# Copyright 2009 Geoff Levand
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+
+package main;
+
+use strict;
+use warnings;
+use Getopt::Std;
+require audx;
+
+my $app_name = q(get-art);
+my $app_version = q((@PACKAGE_NAME@) @PACKAGE_VERSION@);
+my $app_bugreport = q(Send bug reports to @PACKAGE_BUGREPORT@.);
+
+sub VERSION_MESSAGE
+{
+	print($app_name . " " . $app_version . "\n");
+}
+
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+
+sub HELP_MESSAGE
+{
+	print("SYNOPSIS\n"
+. "     " . $app_name . " [-OPTIONS]\n"
+. "DESCRIPTION\n"
+. "     Download music cover art.\n"
+. "OPTIONS\n"
+. "     -h, --help\n"
+. "          Print a help message.\n"
+. "     -p prefix\n"
+. "          Download files to directory prefix.\n"
+. "     -n\n"
+. "          Dry run (no downloading).\n"
+. "     -v level\n"
+. "          Program verbosity level.\n"
+. "     -V, --version\n"
+. "          Display the program version number.\n"
+. "EXAMPLE\n"
+. "     find music/flac -type f -name '*.flac' | sort | \\\n"
+. "     get-art -p flac-art -v\n"
+	);
+	print($app_bugreport . "\n");
+}
+
+sub opts_parse (@)
+{
+	my ($opts) = @_;
+	our ($opt_h, $opt_p, $opt_n, $opt_v, $opt_V);
+
+	getopts('hp:nv:V');
+
+
+	if (defined($opt_h)) {
+		VERSION_MESSAGE();
+		HELP_MESSAGE();
+		exit 0;
+	}
+
+	if (defined($opt_V)) {
+		VERSION_MESSAGE();
+		exit 0;
+	}
+
+	$opts->{prefix} = defined($opt_p) ? $opt_p : "./";
+
+	$opts->{dry_run} = defined($opt_n) ? 1 : 0;
+	$opts->{verbosity} = defined($opt_v) ? $opt_v
+		: $opts->{dry_run} ? 1 : 0;
+}
+
+# start of program
+
+my %opts;
+opts_parse(\%opts);
+
+my $time =`date +%y.%m.%d.%H.%M.%S`;
+chomp($time);
+
+print STDOUT ($app_name . ": processed at " . $time . "\n");
+
+if ($opts{verbosity}) {
+	print STDOUT ($app_name . ": verbosity: " . $opts{verbosity} . "\n");
+	print STDOUT ($app_name . ": out_prefix: '" . $opts{prefix} . "'\n");
+}
+
+my @file_info;
+my $file_info_count = 0;
+
+while(<>) {
+	chomp($_);
+
+	my %info;
+	audx::file_info_parse(\%info, $_, $opts{verbosity});
+
+	my %file;
+	$file{info} = \%info;
+
+	$file_info_count++;
+	push(@file_info, \%file);
+}
+
+print STDOUT ($app_name . ": processing " . $file_info_count
+	. " input files\n");
+
+FILE: foreach my $file (@file_info) {
+	my $result;
+
+	audx::file_info_print($file->{info}, $opts{verbosity});
+
+	my %tags;
+	if (1) {
+		audx::tags_from_metaflac(\%tags, $file->{info}->{full},
+			$opts{verbosity});
+	}
+
+	$file->{tags} = \%tags;
+
+	audx::tags_print($file->{tags}, $opts{verbosity});
+
+	my $out_dir = $opts{prefix} . "/" . $file->{info}->{path};
+
+}
+
+__END__
