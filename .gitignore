@@ -64,4 +64,6 @@ stamp-h1
 # make generated files
 #
 flac2mp4
-
+flac-cleanup
+get-art
+mart
