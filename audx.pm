@@ -60,10 +60,18 @@ sub file_info_parse (@)
 {
 	my ($info, $file, $verbosity) = @_;
 
+	# type A
+	# %{albumartist}/%{albumtitle}/Disc %{disknumber} - %{number} - %{title}.%{extension}
+	# type B
+	# %{albumartist}/%{albumtitle}/%{number} - %{title}.%{extension}
+	# type C
 	# %{albumartist}/%{albumtitle}/%{artist} - %{number} - %{title}.%{extension}
+
 	# prefix: '/home/geoff/music/collection/flac/'
 	# path:  '10,000 Maniacs/Blind Man's Zoo/'
-	# name:  '10,000 Maniacs - 01 - Eat For Two'
+	# A name:  'Disc 1 - 1 - Eat For Two'
+	# B name:  '1 - Eat For Two'
+	# C name:  '10,000 Maniacs - 01 - Eat For Two'
 
 	$info->{full} = $file;
 
@@ -79,11 +87,39 @@ sub file_info_parse (@)
 	$info->{albumartist} = $1;
 	$info->{albumtitle} = $2;
 
-	$info->{name} =~ m{^(.+) - ([0-9][0-9]) - (.+)$};
+	# A
+	if ($info->{name} =~ m{^Disc ([1-9]) - ([0-9]?[0-9]) - (.+)$}) {
+		$info->{disk} = $1;
+		$info->{artist} = $info->{albumartist};
+		$info->{number} = $2;
+		$info->{title} = $3;
+		$info->{number} = q(0) . $info->{number}
+			if $info->{number} =~ m{^[0-9]$};
+		return;
+	}
 
-	$info->{artist} = $1;
-	$info->{number} = $2;
-	$info->{title} = $3;
+	# C
+	if ($info->{name} =~ m{^(.+) - ([0-9][0-9]) - (.+)$}) {
+		$info->{disk} = q(1);
+		$info->{artist} = $1;
+		$info->{number} = $2;
+		$info->{title} = $3;
+		return;
+	}
+
+	# B
+	if ($info->{name} =~ m{^([0-9]?[0-9]) - (.+)$}) {
+		$info->{disk} = q(1);
+		$info->{artist} = $info->{albumartist};
+		$info->{number} = $1;
+		$info->{title} = $2;
+		$info->{number} = q(0) . $info->{number}
+			if $info->{number} =~ m{^[0-9]$};
+		return;
+	}
+
+	print STDERR ( __PACKAGE__ . ": " . __LINE__ . ": parse failed: '"
+		. $info->{name} . "'\n");
 }
 
 sub file_info_print (@)
@@ -102,6 +138,7 @@ sub file_info_print (@)
 		print STDOUT ("i-albumartist: '"
 			. $info->{albumartist} . "'\n");
 		print STDOUT ("i-albumtitle:  '" . $info->{albumtitle} . "'\n");
+		print STDOUT ("i-disk:        '" . $info->{disk} . "'\n");
 		print STDOUT ("i-number:      '" . $info->{number} . "'\n");
 		print STDOUT ("i-title:       '" . $info->{title} . "'\n");
 	}
@@ -114,13 +151,7 @@ sub mart_from_info (@)
 	print STDOUT ("i-albumartist: '" . $info->{albumartist} . "'\n");
 	print STDOUT ("i-albumtitle:  '" . $info->{albumtitle} . "'\n");
 
-	my $cmd = "metaflac --list --block-type=VORBIS_COMMENT '" . $in_file
-		. "'";
-
-	print STDOUT ("cmd: @" . $cmd . "@\n") if ($verbosity >= 4);
-
-	my $meta = qx($cmd);
-	chomp($meta);
+	die("todo");
 
 }
 

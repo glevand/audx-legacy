@@ -9,7 +9,6 @@
 # -- todo --
 # output to tmp file and rename
 # add threads
-# multiple quality opts
 #
 package main;
 
@@ -27,6 +26,16 @@ my %qualities = (
 		prefix => "128",
 		faac_opts => "-q 100 -c 16000",
 		nero_opts => "-2pass -br 128000",
+	},
+	160 => {
+		prefix => "160",
+		faac_opts => "-q 125 -c 18000",
+		nero_opts => "-2pass -br 160000",
+	},
+	192 => {
+		prefix => "192",
+		faac_opts => "-q 150 -c 20000",
+		nero_opts => "-2pass -br 192000",
 	},
 	256 => {
 		prefix => "256",
