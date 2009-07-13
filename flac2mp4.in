@@ -24,22 +24,22 @@ my $app_bugreport = q(Send bug reports to @PACKAGE_BUGREPORT@.);
 my %qualities = (
 	128 => {
 		prefix => "128",
-		faac_opts => "-q 100 -c 16000",
+		faac_opts => "-q 128 -c 16000",
 		nero_opts => "-2pass -br 128000",
 	},
 	160 => {
 		prefix => "160",
-		faac_opts => "-q 125 -c 18000",
+		faac_opts => "-q 160 -c 18000",
 		nero_opts => "-2pass -br 160000",
 	},
 	192 => {
 		prefix => "192",
-		faac_opts => "-q 150 -c 20000",
+		faac_opts => "-q 192 -c 20000",
 		nero_opts => "-2pass -br 192000",
 	},
 	256 => {
 		prefix => "256",
-		faac_opts => "-q 200 -c 24000",
+		faac_opts => "-q 256 -c 24000",
 		nero_opts => "-2pass -br 256000",
 	},
 );
